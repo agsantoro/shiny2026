@@ -32,13 +32,15 @@ data_final = data_final %>% left_join(data_orig)
 # reemplaza NA por 0
 data_final$cantidad_casos[is.na(data_final$cantidad_casos)] = 0
 
+
+
 ##### Visualización #####
 library(shiny)
 
 ui <- fluidPage(
-
+  
   # indica el tema por defecto
-  theme = bs_theme(version = 5, bootswatch = "minty"),
+  theme = bs_theme(version = 5, bootswatch = "united"),
   
   # define layout
   fluidRow(
@@ -50,18 +52,18 @@ ui <- fluidPage(
     column(
       12,
       align = "center")
-    ),
+  ),
   br(),
   fluidRow(
     column(4,
            
            # select de provincia
            selectInput(
-            inputId = "provId",
-            label = "Seleccionar jurisdicción:",
-            choices = unique(data_final$provincia_id),
-            multiple = F,
-            selected = unique(data_final$provincia_id)[1]
+             inputId = "provId",
+             label = "Seleccionar jurisdicción:",
+             choices = unique(data_final$provincia_id),
+             multiple = F,
+             selected = unique(data_final$provincia_id)[1]
            ),
            
            # select de grupo de edad
@@ -77,7 +79,7 @@ ui <- fluidPage(
            # gráfico con datos originales
            highchartOutput("datosOriginales"),
            align = "center"
-           )
+    )
   ),
   fluidRow(
     column(
@@ -85,21 +87,29 @@ ui <- fluidPage(
     ),
     column(8,
            h2("Con datos expandidos"),
-
+           
            # grafico con datos expandidos
            highchartOutput("datosExpandidos"),
            align = "center"
-           )
+    )
     
   ),
   fluidRow(column(9),
            column(3,
-
+                  
                   # botón de descarga
                   downloadButton(
                     outputId = "descargar",
                     label = "Descargar"
                   ),
+                  
+                  # borón de acción
+                  
+                  actionButton(
+                    inputId = "actualizar",
+                    label = "Actualizar input"
+                  ),
+                  
                   align = "right")),
   br(),
   hr(),
@@ -107,7 +117,21 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  bs_themer()
+  #bs_themer()
+  
+  
+  
+  # observe para actualizar configuración de un input
+  observeEvent(input$actualizar, {
+    
+    # función update
+    updateSelectInput(
+      session, 
+      inputId = "provId",
+      selected = "6",
+      label = "El input se modificó con update")
+  })
+  
   
   # output de gráfico con datos originales
   output$datosOriginales = renderHighchart({
@@ -120,7 +144,7 @@ server <- function(input, output, session) {
       hc_xAxis(categories = dataGrafico$semanas_epidemiologicas) %>%
       hc_add_series(name = "Casos", dataGrafico$cantidad_casos)
   })
-
+  
   # output de gráfico con datos expandidos
   output$datosExpandidos = renderHighchart({
     
@@ -132,15 +156,18 @@ server <- function(input, output, session) {
       hc_xAxis(categories = dataGrafico$semanas_epidemiologicas) %>%
       hc_add_series(name = "Casos", dataGrafico$cantidad_casos)
   })
-
+  
   # Output de la descarga
   output$descargar <- downloadHandler(
     filename = function() {
       paste("data-", Sys.Date(), ".csv", sep="")
     },
     content = function(file) {
+      
+      # acá se define qué se descarga
       dataGrafico = data_final %>% dplyr::filter(provincia_id == input$provId & grupo_edad_desc == input$edadId)
       write.csv(dataGrafico, file)
+      
     }
   )
   
